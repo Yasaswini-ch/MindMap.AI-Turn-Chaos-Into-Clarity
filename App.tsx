@@ -19,9 +19,12 @@ const App: React.FC = () => {
     const [history, setHistory] = useState<{ topic: string; data: MindMapData }[]>([]);
 
     const handleGenerate = useCallback(async (topicToGenerate: string, isDrillDown = false) => {
-        if (!topicToGenerate.trim()) {
-            setError('Please enter some text to generate a mind map.');
-            return;
+        if (!topicToGenerate.trim() && !mindMapData?.isDemo) {
+             // Allow generating demo data with empty input
+            if (!topicToGenerate.trim()) {
+                setError('Please enter some text to generate a mind map.');
+                return;
+            }
         }
 
         if (isDrillDown && mindMapData) {
@@ -159,6 +162,12 @@ const App: React.FC = () => {
                 </div>
 
                 {error && <div className="w-full max-w-4xl bg-red-500/30 border border-red-500 text-red-200 px-4 py-3 rounded-lg animate-fade-in-up">{error}</div>}
+
+                {mindMapData?.isDemo && (
+                     <div className="w-full max-w-4xl bg-yellow-500/30 border border-yellow-500 text-yellow-200 px-4 py-3 rounded-lg animate-fade-in-up">
+                        <strong>Demo Mode:</strong> The mind map below is example data. To generate live mind maps from your own text, please configure the <code>API_KEY</code> in your deployment environment.
+                    </div>
+                )}
 
                 {mindMapData && (
                     <div className="w-full bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 shadow-2xl animate-fade-in-up transition-all duration-500">

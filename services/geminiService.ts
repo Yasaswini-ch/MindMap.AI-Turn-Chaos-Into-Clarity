@@ -36,22 +36,47 @@ const responseSchema = {
     required: ['hierarchy', 'mermaidGraph', 'insights']
 };
 
+const mockMindMapData: MindMapData = {
+  hierarchy: {
+    mainTopic: 'Demo Mode: How to Bake a Cake',
+    subtopics: [
+      { name: 'Gather Ingredients', details: 'Flour, sugar, eggs, butter, baking powder.' },
+      { name: 'Preheat Oven', details: 'Set to 350°F (175°C).' },
+      { name: 'Mix Ingredients', details: 'Combine dry, then mix in wet ingredients.' },
+      { name: 'Bake', details: 'Bake for 30-35 mins until golden brown.' },
+    ],
+  },
+  mermaidGraph: `graph TD
+    A["Demo: How to Bake a Cake"]
+    A --> B["Gather Ingredients<br/>Flour, sugar, eggs, butter..."]
+    A --> C["Preheat Oven<br/>Set to 350°F (175°C)"]
+    A --> D["Mix Ingredients<br/>Combine dry, then mix in wet"]
+    A --> E["Bake<br/>30-35 minutes until golden"]`,
+  insights: [
+    'This is a demonstration of what MindMap.AI can do.',
+    'The app is currently running in an offline demo mode because no API key was found.',
+    'To generate mind maps from your own text, configure the API_KEY environment variable in your deployment settings.',
+  ],
+  isDemo: true,
+};
+
 
 export async function generateMindMap(inputText: string): Promise<MindMapData> {
     let apiKey: string | undefined;
     try {
-        // This will throw a ReferenceError if 'process' is not defined, which is expected
-        // in a browser environment without a build-time substitution.
         apiKey = process.env.API_KEY;
     } catch (e) {
-        console.error("Could not access process.env.API_KEY", e);
+        // In a browser environment without a build process, process is not defined.
+        // We can safely ignore this, and apiKey will be undefined.
     }
 
     if (!apiKey) {
-        throw new Error("API Key not found. Please ensure the API key is configured correctly in your deployment environment.");
+        console.warn("API Key not found. Returning mock data.");
+        // Simulate network delay for a better user experience
+        return new Promise(resolve => setTimeout(() => resolve(mockMindMapData), 1000));
     }
     
-    const ai = new GoogleGenAI({ apiKey: apiKey as string });
+    const ai = new GoogleGenAI({ apiKey });
 
     const prompt = `
         Analyze the following unstructured text. Your task is to transform it into a structured mind map format.
@@ -94,7 +119,6 @@ export async function generateMindMap(inputText: string): Promise<MindMapData> {
         const jsonText = response.text.trim();
         const data: MindMapData = JSON.parse(jsonText);
         
-        // Basic validation
         if (!data.hierarchy || !data.mermaidGraph || !data.insights) {
             throw new Error("Invalid data structure received from AI.");
         }

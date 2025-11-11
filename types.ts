@@ -13,6 +13,7 @@ export interface MindMapData {
     hierarchy: Hierarchy;
     mermaidGraph: string;
     insights: string[];
+    isDemo?: boolean;
 }
 
 export type ActiveTab = 'hierarchy' | 'mindmap' | 'insights';
