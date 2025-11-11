@@ -15,10 +15,11 @@ const Icon = ({ path, className = 'w-5 h-5' }: { path: string; className?: strin
 interface MindMapViewProps {
     mermaidCode: string;
     onSubtopicClick: (subtopic: string) => void;
+    onMainTopicClick: (topic: string) => void;
     mainTopic: string;
 }
 
-export const MindMapView: React.FC<MindMapViewProps> = ({ mermaidCode, onSubtopicClick, mainTopic }) => {
+export const MindMapView: React.FC<MindMapViewProps> = ({ mermaidCode, onSubtopicClick, onMainTopicClick, mainTopic }) => {
     const svgContainerRef = useRef<HTMLDivElement>(null);
     const panWrapperRef = useRef<HTMLDivElement>(null);
     const panStartRef = useRef({ x: 0, y: 0 });
@@ -55,7 +56,7 @@ export const MindMapView: React.FC<MindMapViewProps> = ({ mermaidCode, onSubtopi
                         if (svgContainerRef.current) {
                            svgContainerRef.current.innerHTML = svg;
                            
-                            // Add click handlers for drill-down functionality
+                            // Add click handlers for drill-down and elaboration functionality
                            const nodes = svgContainerRef.current.querySelectorAll('.node');
                            
                            nodes.forEach((node) => {
@@ -64,15 +65,24 @@ export const MindMapView: React.FC<MindMapViewProps> = ({ mermaidCode, onSubtopi
                                 
                                 if (label) {
                                     // The label contains "Name\nDetails", we just want the name
-                                    const nodeTopic = label.split('\n')[0].trim();
+                                    const nodeTopic = label.split(/<br\s*\/?>/)[0].trim();
 
-                                    // Attach click listener only to subtopic nodes, not the main topic
-                                    if (nodeTopic && nodeTopic !== mainTopic) {
+                                    if (nodeTopic) {
                                         svgNode.style.cursor = 'pointer';
-                                        svgNode.setAttribute('title', 'Click to expand this topic');
-                                        svgNode.addEventListener('click', () => {
-                                            onSubtopicClick(nodeTopic);
-                                        });
+                                        
+                                        if (nodeTopic === mainTopic) {
+                                            // Main topic gets the "know more" modal
+                                            svgNode.setAttribute('title', 'Click to learn more about this topic');
+                                            svgNode.addEventListener('click', () => {
+                                                onMainTopicClick(nodeTopic);
+                                            });
+                                        } else {
+                                            // Subtopics get the drill-down functionality
+                                            svgNode.setAttribute('title', 'Click to expand this topic');
+                                            svgNode.addEventListener('click', () => {
+                                                onSubtopicClick(nodeTopic);
+                                            });
+                                        }
                                     }
                                 }
                            });
@@ -100,7 +110,7 @@ export const MindMapView: React.FC<MindMapViewProps> = ({ mermaidCode, onSubtopi
         } else if (!mermaidCode) {
             setIsRendering(false);
         }
-    }, [mermaidCode, centerView, onSubtopicClick, mainTopic]);
+    }, [mermaidCode, centerView, onSubtopicClick, onMainTopicClick, mainTopic]);
     
     // Zoom handler
     const handleWheel = (e: WheelEvent<HTMLDivElement>) => {

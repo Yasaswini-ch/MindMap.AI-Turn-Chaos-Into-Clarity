@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { MindMapData, ActiveTab } from './types';
-import { generateMindMap } from './services/geminiService';
+import { generateMindMap, getTopicElaboration } from './services/geminiService';
 import { MindMapView } from './components/MindMapView';
 
 // A simple component for SVG icons to avoid clutter
@@ -17,6 +17,13 @@ const App: React.FC = () => {
     const [mindMapData, setMindMapData] = useState<MindMapData | null>(null);
     const [activeTab, setActiveTab] = useState<ActiveTab>('hierarchy');
     const [history, setHistory] = useState<{ topic: string; data: MindMapData }[]>([]);
+    const [modalState, setModalState] = useState({
+        isOpen: false,
+        topic: '',
+        content: '',
+        isLoading: false,
+    });
+
 
     const handleGenerate = useCallback(async (topicToGenerate: string, isDrillDown = false) => {
         if (!topicToGenerate.trim() && !mindMapData?.isDemo) {
@@ -53,6 +60,21 @@ const App: React.FC = () => {
     const handleSubtopicDrillDown = useCallback((subtopic: string) => {
         handleGenerate(subtopic, true);
     }, [handleGenerate]);
+
+    const handleMainTopicClick = useCallback(async (topic: string) => {
+        setModalState({ isOpen: true, topic, content: '', isLoading: true });
+        try {
+            const elaboration = await getTopicElaboration(topic);
+            setModalState(prev => ({ ...prev, content: elaboration, isLoading: false }));
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
+            setModalState(prev => ({ ...prev, content: errorMessage, isLoading: false }));
+        }
+    }, []);
+
+    const closeModal = () => {
+        setModalState({ isOpen: false, topic: '', content: '', isLoading: false });
+    };
     
     const handleBack = useCallback(() => {
         if (history.length === 0) return;
@@ -93,7 +115,12 @@ const App: React.FC = () => {
                     </div>
                 );
             case 'mindmap':
-                return <MindMapView mermaidCode={mindMapData.mermaidGraph} onSubtopicClick={handleSubtopicDrillDown} mainTopic={mindMapData.hierarchy.mainTopic} />;
+                return <MindMapView 
+                            mermaidCode={mindMapData.mermaidGraph} 
+                            onSubtopicClick={handleSubtopicDrillDown} 
+                            onMainTopicClick={handleMainTopicClick}
+                            mainTopic={mindMapData.hierarchy.mainTopic} 
+                        />;
             case 'insights':
                 return (
                      <div className="space-y-4 text-left p-4 sm:p-6">
@@ -199,6 +226,39 @@ const App: React.FC = () => {
              <footer className="text-center mt-auto pt-10 text-gray-400 text-sm animate-fade-in-up">
                 <p>Built at NERDS Vibeathon ‘25</p>
             </footer>
+
+            {modalState.isOpen && (
+                <div 
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in-content" 
+                    onClick={closeModal}
+                    aria-modal="true"
+                    role="dialog"
+                >
+                    <div 
+                        className="bg-gray-800 border border-purple-500/50 rounded-2xl shadow-2xl max-w-2xl w-full p-6 text-left" 
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="flex justify-between items-start mb-4">
+                            <h3 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-300">{modalState.topic}</h3>
+                            <button onClick={closeModal} className="text-gray-400 hover:text-white transition-colors" aria-label="Close modal">
+                                <Icon path="M6 18L18 6M6 6l12 12" className="w-6 h-6" />
+                            </button>
+                        </div>
+                        {modalState.isLoading ? (
+                            <div className="flex items-center justify-center min-h-[10rem]">
+                                <svg className="animate-spin h-8 w-8 text-purple-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </div>
+                        ) : (
+                            <div className="text-gray-300 leading-relaxed max-h-[60vh] overflow-y-auto pr-2">
+                                <p>{modalState.content}</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

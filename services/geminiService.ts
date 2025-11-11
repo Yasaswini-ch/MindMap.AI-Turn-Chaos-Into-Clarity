@@ -159,3 +159,36 @@ export async function generateMindMap(inputText: string): Promise<MindMapData> {
         throw new Error("Failed to generate mind map. The AI may be experiencing issues or the input is too complex. Please try again.");
     }
 }
+
+export async function getTopicElaboration(topic: string): Promise<string> {
+    const apiKey = getApiKey();
+
+    if (!apiKey) {
+        // This can happen if the user generated a demo map, then tries to elaborate.
+        if (topic.startsWith('Demo Mode:')) {
+            return "This is a sample topic from the demo mode. To get real-time elaborations, please refresh and provide your API key to generate a live mind map.";
+        }
+        throw new Error("API Key is required to get more information. Please refresh and provide your key.");
+    }
+    
+    const ai = new GoogleGenAI({ apiKey });
+    
+    const prompt = `Provide a concise, one-paragraph elaboration on the following topic: "${topic}"`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+        });
+
+        return response.text;
+
+    } catch (error) {
+        console.error("Error getting topic elaboration:", error);
+         if (error instanceof Error && (error.message.includes('API key not valid') || error.message.includes('API_KEY_INVALID'))) {
+             sessionStorage.removeItem('gemini_api_key');
+             throw new Error("Your API key is not valid. It has been cleared. Please provide a valid key on your next attempt.");
+        }
+        throw new Error("Failed to get more information. The AI may be experiencing issues.");
+    }
+}
