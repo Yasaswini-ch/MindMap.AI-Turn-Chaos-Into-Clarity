@@ -165,7 +165,7 @@ const App: React.FC = () => {
 
                 {mindMapData?.isDemo && (
                      <div className="w-full max-w-4xl bg-yellow-500/30 border border-yellow-500 text-yellow-200 px-4 py-3 rounded-lg animate-fade-in-up">
-                        <strong>Demo Mode:</strong> The mind map below is example data. To generate live mind maps from your own text, please configure the <code>API_KEY</code> in your deployment environment.
+                        <strong>Demo Mode:</strong> You are seeing sample data because no API key was provided. Refresh the page to enter your key and generate live mind maps.
                     </div>
                 )}
 
