@@ -1,8 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { MindMapData } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
-
 const responseSchema = {
     type: Type.OBJECT,
     properties: {
@@ -40,6 +38,21 @@ const responseSchema = {
 
 
 export async function generateMindMap(inputText: string): Promise<MindMapData> {
+    let apiKey: string | undefined;
+    try {
+        // This will throw a ReferenceError if 'process' is not defined, which is expected
+        // in a browser environment without a build-time substitution.
+        apiKey = process.env.API_KEY;
+    } catch (e) {
+        console.error("Could not access process.env.API_KEY", e);
+    }
+
+    if (!apiKey) {
+        throw new Error("API Key not found. Please ensure the API key is configured correctly in your deployment environment.");
+    }
+    
+    const ai = new GoogleGenAI({ apiKey: apiKey as string });
+
     const prompt = `
         Analyze the following unstructured text. Your task is to transform it into a structured mind map format.
 
@@ -90,6 +103,9 @@ export async function generateMindMap(inputText: string): Promise<MindMapData> {
 
     } catch (error) {
         console.error("Error calling Gemini API:", error);
+         if (error instanceof Error && error.message.includes('API key not valid')) {
+             throw new Error("Your API key is not valid. Please check your deployment environment variables.");
+        }
         throw new Error("Failed to generate mind map. The AI may be experiencing issues or the input is too complex. Please try again.");
     }
 }
